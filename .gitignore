@@ -1,0 +1,16 @@
+# Build output
+/orusage
+/dist/
+
+# Local environment
+.env
+.env.local
+*.local
+
+# Editor / OS
+.DS_Store
+.idea/
+.vscode/
+
+# Nix build symlink
+/result
