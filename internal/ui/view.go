@@ -7,8 +7,8 @@ import (
 
 	"github.com/charmbracelet/lipgloss"
 
-	"github.com/raghavgupta/orusage/internal/auth"
-	"github.com/raghavgupta/orusage/internal/openrouter"
+	"github.com/Marcus0086/orusage/internal/auth"
+	"github.com/Marcus0086/orusage/internal/openrouter"
 )
 
 var spinnerFrames = []string{"⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"}
@@ -85,7 +85,9 @@ func (m Model) dashboardView() string {
 	b.WriteString("\n" + m.budgetsView(inner))
 	b.WriteString("\n" + m.usageView(inner))
 	b.WriteString("\n" + m.requestsView(inner))
-	b.WriteString("\n" + m.historyView(inner))
+	if section := m.historyView(inner); section != "" {
+		b.WriteString("\n" + section)
+	}
 	if line := m.probeView(inner); line != "" {
 		b.WriteString("\n" + line)
 	}
@@ -452,50 +454,52 @@ func (m Model) rateLimitText() string {
 }
 
 // historyView shows movement over time: a sparkline plus a burn-rate estimate.
+// It renders nothing until there is enough history to be worth a row, because
+// a one-point sparkline and a placeholder burn rate are noise on a screen that
+// someone just opened.
 func (m Model) historyView(inner int) string {
+	series := m.historySeries()
+	window := m.trendWindow()
+	hasTrend := len(series) >= minTrendSamples && window >= minTrendWindow
+	rate, hasRate := m.burnRate()
+	if !hasTrend && !hasRate {
+		return ""
+	}
+
 	var b strings.Builder
 	b.WriteString("  " + m.styles.Section.Render("History") + "\n")
 
-	series := m.historySeries()
-	if len(series) == 0 {
-		b.WriteString(m.row("Trend", "collecting samples…", inner))
-	} else {
+	if hasTrend {
 		label := "remaining"
 		if m.info.LimitUSD() == nil {
 			label = "usage"
 		}
-		window := time.Duration(0)
-		if len(m.samples) > 1 {
-			window = m.samples[len(m.samples)-1].At.Sub(m.samples[0].At)
-		}
+		window := HumanDuration(m.trendWindow())
 
-		// The sparkline absorbs whatever the trailing caption does not use.
+		// The sparkline absorbs whatever the trailing caption does not use, so
+		// the caption shortens before the row is allowed to overflow.
 		const minSpark = 6
 		available := inner - labelWidth - 4
 		trailer := ""
-		for _, part := range []string{label, "over " + HumanDuration(window), Count(len(m.samples)) + " samples"} {
-			piece := part
-			if trailer != "" {
-				piece = " · " + part
-			}
-			if len(trailer)+len(piece)+minSpark+2 > available {
+		for _, candidate := range []string{
+			fmt.Sprintf("%s over %s · %s", label, window, plural(len(m.samples), "sample")),
+			fmt.Sprintf("%s over %s", label, window),
+			window,
+		} {
+			if len(candidate)+minSpark+2 <= available {
+				trailer = candidate
 				break
 			}
-			trailer += piece
 		}
 		sparkWidth := clamp(available-len(trailer)-2, minSpark, 52)
 		if trailer == "" {
 			sparkWidth = clamp(available, minSpark, 52)
 		}
 		spark := m.styles.Accent.Render(Sparkline(series, sparkWidth))
-		if trailer != "" {
-			b.WriteString(m.styledRow("Trend", spark+m.styles.Faint.Render("  "+trailer)))
-		} else {
-			b.WriteString(m.styledRow("Trend", spark))
-		}
+		b.WriteString(m.styledRow("Trend", spark+m.styles.Faint.Render("  "+trailer)))
 	}
 
-	if rate, ok := m.burnRate(); ok {
+	if hasRate {
 		parts := []string{fmt.Sprintf("%s/hr ≈ %s/day", Money(rate), Money(rate*24))}
 		if session, ok := m.sessionSpend(); ok {
 			parts = append(parts, Money(session)+" this session")
@@ -505,8 +509,6 @@ func (m Model) historyView(inner int) string {
 			parts = append(parts, "limit reached "+In(time.Duration(hours*float64(time.Hour))))
 		}
 		b.WriteString(m.row("Burn rate", strings.Join(parts, " · "), inner))
-	} else {
-		b.WriteString(m.row("Burn rate", "needs a few minutes of samples", inner))
 	}
 	return b.String()
 }

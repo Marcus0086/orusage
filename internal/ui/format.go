@@ -30,6 +30,14 @@ func Money(v float64) string {
 // MoneyFixed renders a dollar amount with two decimals.
 func MoneyFixed(v float64) string { return fmt.Sprintf("$%.2f", v) }
 
+// plural renders a count with its noun, singular when the count is one.
+func plural(n int, noun string) string {
+	if n == 1 {
+		return "1 " + noun
+	}
+	return Count(n) + " " + noun + "s"
+}
+
 // Count renders a thousands-separated integer.
 func Count(n int) string {
 	s := fmt.Sprintf("%d", n)

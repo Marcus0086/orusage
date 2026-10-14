@@ -12,9 +12,9 @@ import (
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 
-	"github.com/raghavgupta/orusage/internal/auth"
-	"github.com/raghavgupta/orusage/internal/openrouter"
-	"github.com/raghavgupta/orusage/internal/pace"
+	"github.com/Marcus0086/orusage/internal/auth"
+	"github.com/Marcus0086/orusage/internal/openrouter"
+	"github.com/Marcus0086/orusage/internal/pace"
 )
 
 const (
@@ -27,6 +27,10 @@ const (
 	sampleWindow = 20 * time.Minute
 	// maxSamples caps retained history.
 	maxSamples = 720
+	// minTrendSamples and minTrendWindow are what the trend row needs before
+	// it says anything: a sparkline of two points a second apart is noise.
+	minTrendSamples = 2
+	minTrendWindow  = 10 * time.Second
 	// flashDuration is how long a transient notice stays on screen.
 	flashDuration = 6 * time.Second
 
@@ -524,6 +528,14 @@ func (m Model) remaining() (float64, bool) {
 		return max(0, *limit-m.info.Spend()), true
 	}
 	return 0, false
+}
+
+// trendWindow is the time span the retained samples cover.
+func (m Model) trendWindow() time.Duration {
+	if len(m.samples) < 2 {
+		return 0
+	}
+	return m.samples[len(m.samples)-1].At.Sub(m.samples[0].At)
 }
 
 // burnRate estimates spend per hour from the retained samples.

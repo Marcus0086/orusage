@@ -8,8 +8,8 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 
-	"github.com/raghavgupta/orusage/internal/auth"
-	"github.com/raghavgupta/orusage/internal/openrouter"
+	"github.com/Marcus0086/orusage/internal/auth"
+	"github.com/Marcus0086/orusage/internal/openrouter"
 )
 
 const fixtureKey = "sk-or-v1-8c1d5c0f4e2b7a9d3c6f8b1e4a7d0c3f8d8"
@@ -157,6 +157,71 @@ func TestOverLimitBudgetIsFlagged(t *testing.T) {
 	// The bar itself is full rather than overshooting its column.
 	if got := Share(260, 250); got != 1 {
 		t.Errorf("Share(260, 250) = %v, want a full bar", got)
+	}
+}
+
+// TestHistoryStaysHiddenUntilUseful checks that a freshly opened screen shows
+// no History section at all, rather than a one-point sparkline and a
+// placeholder burn rate.
+func TestHistoryStaysHiddenUntilUseful(t *testing.T) {
+	cases := []struct {
+		name     string
+		samples  []sample
+		spacing  time.Duration
+		count    int
+		wantRows bool
+	}{
+		{name: "no samples yet", count: 0},
+		{name: "one sample", count: 1, spacing: time.Second},
+		{name: "two samples a second apart", count: 2, spacing: time.Second},
+		{name: "three samples inside the window", count: 3, spacing: 3 * time.Second},
+		{name: "three samples across the window", count: 3, spacing: 10 * time.Second, wantRows: true},
+		{name: "a full minute of samples", count: 30, spacing: 2 * time.Second, wantRows: true},
+	}
+
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			m := fixture()
+			m.width = 100
+			m.samples = nil
+			for i := 0; i < c.count; i++ {
+				m.samples = append(m.samples, sample{
+					At:    m.now.Add(time.Duration(i-c.count+1) * c.spacing),
+					Spend: 41.30 + float64(i)*0.01,
+					Usage: 41.30 + float64(i)*0.01,
+				})
+			}
+
+			view := m.View()
+			hasSection := strings.Contains(view, "History")
+			if hasSection != c.wantRows {
+				t.Errorf("History section shown = %v, want %v\n%s", hasSection, c.wantRows, view)
+			}
+			for _, unwanted := range []string{"collecting samples", "needs a few minutes", "1 samples", "over now"} {
+				if strings.Contains(view, unwanted) {
+					t.Errorf("view still contains the placeholder %q\n%s", unwanted, view)
+				}
+			}
+			if c.wantRows && !strings.Contains(view, "Trend") {
+				t.Errorf("History shown without a trend row\n%s", view)
+			}
+		})
+	}
+}
+
+// TestTrendCaptionCountsSamples checks the trend caption pluralises and
+// reports the real window.
+func TestTrendCaptionCountsSamples(t *testing.T) {
+	m := fixture()
+	m.width = 118
+	m.samples = []sample{
+		{At: m.now.Add(-12 * time.Second), Spend: 41.0, Usage: 41.0},
+		{At: m.now.Add(-6 * time.Second), Spend: 41.2, Usage: 41.2},
+		{At: m.now, Spend: 41.4, Usage: 41.4},
+	}
+	view := m.View()
+	if !strings.Contains(view, "remaining over 12s · 3 samples") {
+		t.Errorf("trend caption is wrong\n%s", view)
 	}
 }
 
