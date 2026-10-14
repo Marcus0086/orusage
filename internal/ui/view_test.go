@@ -138,6 +138,28 @@ func TestDashboardShowsUsageFacts(t *testing.T) {
 	}
 }
 
+func TestOverLimitBudgetIsFlagged(t *testing.T) {
+	m := fixture()
+	m.width = 118
+	m.info.EffectiveBudget.SpendUSD = 260
+	m.info.EffectiveBudget.LimitUSD = 250
+	m.info.EffectiveBudget.RemainingUSD = -10
+
+	view := m.View()
+	for _, want := range []string{"104.0%", "$10.00 over"} {
+		if !strings.Contains(view, want) {
+			t.Errorf("over-limit dashboard is missing %q\n%s", want, view)
+		}
+	}
+	if strings.Contains(view, "$0.00 left") {
+		t.Errorf("over-limit dashboard still reports a remaining balance\n%s", view)
+	}
+	// The bar itself is full rather than overshooting its column.
+	if got := Share(260, 250); got != 1 {
+		t.Errorf("Share(260, 250) = %v, want a full bar", got)
+	}
+}
+
 func TestDashboardStatesRender(t *testing.T) {
 	t.Run("loading", func(t *testing.T) {
 		m := fixture()

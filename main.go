@@ -40,7 +40,7 @@ func run(args []string) int {
 		baseURL      = flags.String("base-url", openrouter.DefaultBaseURL, "OpenRouter API base URL")
 		interval     = flags.Duration("interval", 5*time.Second, "poll interval (1s–10m); the screen halves it briefly after spend moves")
 		maxPerMinute = flags.Int("max-req-per-min", 0, "hard cap on outgoing requests per minute; 0 derives it from the poll interval")
-		probeModel   = flags.String("probe-model", "openai/gpt-4o-mini", "model used by the t test request")
+		probeModel   = flags.String("probe-model", openrouter.DefaultProbeModel, "model used by the t test request")
 		noProbe      = flags.Bool("no-probe", false, "disable the t test-request key")
 		once         = flags.Bool("once", false, "print one snapshot as text and exit")
 		asJSON       = flags.Bool("json", false, "print the raw key payload and exit")

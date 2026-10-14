@@ -78,15 +78,27 @@ func NewStyles(p Palette) Styles {
 	}
 }
 
-// forFraction picks the severity style for a used fraction: quiet while there
-// is room, increasingly loud as the budget fills.
+// Gauge thresholds, as fractions of a budget that has been used. The bar runs
+// green → yellow → orange → red, and stays red past the limit.
+const (
+	// BandYellowFrom is where the gauge turns from green to yellow.
+	BandYellowFrom = 0.5
+	// BandOrangeFrom is where it turns orange: close to the limit.
+	BandOrangeFrom = 0.8
+	// BandRedFrom is where it turns red: effectively spent, and the limit
+	// itself once spend reaches it.
+	BandRedFrom = 0.95
+)
+
+// forFraction picks the severity style for a used fraction: green while there
+// is room, yellow from half spent, orange from 80%, red from 95%.
 func (s Styles) forFraction(fraction float64) lipgloss.Style {
 	switch {
-	case fraction >= 0.95:
+	case fraction >= BandRedFrom:
 		return s.Crit
-	case fraction >= 0.8:
+	case fraction >= BandOrangeFrom:
 		return s.Bad
-	case fraction >= 0.5:
+	case fraction >= BandYellowFrom:
 		return s.Warn
 	default:
 		return s.Good

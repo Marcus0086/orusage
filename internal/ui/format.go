@@ -14,6 +14,10 @@ func Money(v float64) string {
 	switch {
 	case abs == 0:
 		return "$0.00"
+	case abs < 0.0001:
+		// A single cheap request costs a handful of micro-dollars; rounding
+		// those to $0.0000 would report the spend as free.
+		return fmt.Sprintf("$%.6f", v)
 	case abs < 0.01:
 		return fmt.Sprintf("$%.4f", v)
 	case abs < 1:
@@ -168,8 +172,10 @@ func Sparkline(values []float64, width int) string {
 var barGlyphs = []rune(" ▏▎▍▌▋▊▉█")
 
 // Bar renders a proportional bar of exactly width cells, splitting the last
-// cell into eighths so small fractions are still visible. Colour is chosen by
-// the caller from the returned fraction.
+// cell into eighths so small fractions are still visible. Any non-zero
+// fraction fills part of the first cell, because a bar that reads as empty
+// next to a non-zero percentage is misleading. Colour is chosen by the caller
+// from the returned fraction.
 func Bar(fraction float64, width int) string {
 	if width <= 0 {
 		return ""
@@ -178,18 +184,24 @@ func Bar(fraction float64, width int) string {
 	cells := fraction * float64(width)
 	whole := int(cells)
 	frac := cells - float64(whole)
+
 	var b strings.Builder
-	if whole > 0 {
-		b.WriteString(strings.Repeat("█", whole))
+	if whole == 0 && fraction > 0 {
+		b.WriteRune(barGlyphs[1])
+		whole = 1
+	} else {
+		if whole > 0 {
+			b.WriteString(strings.Repeat("█", whole))
+		}
+		if whole < width {
+			if idx := int(frac * 8); idx > 0 {
+				b.WriteRune(barGlyphs[idx])
+				whole++
+			}
+		}
 	}
-	if whole < width {
-		if idx := int(frac * 8); idx > 0 {
-			b.WriteRune(barGlyphs[idx])
-			whole++
-		}
-		if rest := width - whole; rest > 0 {
-			b.WriteString(strings.Repeat("░", rest))
-		}
+	if rest := width - whole; rest > 0 {
+		b.WriteString(strings.Repeat("░", rest))
 	}
 	return b.String()
 }

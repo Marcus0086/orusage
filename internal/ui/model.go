@@ -157,7 +157,7 @@ func New(cfg Config) Model {
 		cfg.Interval = 5 * time.Second
 	}
 	if cfg.ProbeModel == "" {
-		cfg.ProbeModel = "openai/gpt-4o-mini"
+		cfg.ProbeModel = openrouter.DefaultProbeModel
 	}
 	m := Model{
 		cfg:      cfg,

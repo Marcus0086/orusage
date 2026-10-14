@@ -35,6 +35,8 @@ It polls `GET /api/v1/key` on a short interval and shows what you have spent aga
   r refresh · p pause · ? help · q quit · k API key · +/- poll rate · t test request
 ```
 
+Gauges run green below 50% of a budget, yellow from 50%, orange from 80%, and red from 95% — staying red once the limit is reached, where the amounts read `$X.00 over` instead of a remaining balance. The thresholds live in `BandYellowFrom`, `BandOrangeFrom`, and `BandRedFrom`, and `TestPaletteProgressesGreenToRed` checks that the four colours really do step through green → yellow → orange → red by hue in both light and dark terminals.
+
 ## Quick start
 
 With Nix, everything Go-related comes from a dev shell — Go is never installed globally:
@@ -90,7 +92,7 @@ If nothing is found, the dashboard opens on a key prompt. The key is held in mem
 --base-url string         OpenRouter API base URL (default https://openrouter.ai/api/v1)
 --interval duration       poll interval (default 5s)
 --max-req-per-min int     hard cap on outgoing requests per minute (default 0 = derive from the interval)
---probe-model string      model used by the t test request (default openai/gpt-4o-mini)
+--probe-model string      model used by the t test request (default openai/gpt-6-luna)
 --no-probe                disable the t test-request key
 --once                    print one snapshot as text and exit
 --json                    print the raw key payload and exit
@@ -107,7 +109,7 @@ OpenRouter returns **no** `x-ratelimit-*` or `Retry-After` headers on either `/k
 - **Backoff with jitter.** On failure the interval grows exponentially (2s → 2m, ±15% jitter). A `429` increments the visible `× 429` counter, and a server-provided `Retry-After` — should OpenRouter start sending one — is honored exactly and also flows through the generic `x-ratelimit-*` parser.
 - **Burst on activity.** When observed spend moves between two polls, polling halves its interval for 45 seconds so the numbers feel live while requests are actually happening, then relaxes again. The header shows `burst` while that is active.
 - **Honest reporting.** The `Rate limits` row states that no headers were returned rather than implying a limit that was never observed. The free-model daily quota (`free_model_daily_requests`) is shown as a bar because it is a real, published quota.
-- **The `t` probe** (disabled with `--no-probe`) sends a single `max_tokens: 1` completion, records its cost, provider, and latency, and goes through the same pacer as the poller.
+- **The `t` probe** (disabled with `--no-probe`) sends a single `max_tokens: 1` completion, records its cost, provider, and latency, and goes through the same pacer as the poller. The default model is `openai/gpt-6-luna`, a reasoning model, so an answer can take 5–20 seconds and costs a few micro-dollars — `orusage` prints such amounts at six decimals rather than rounding them to `$0.0000`.
 
 ## Development
 
@@ -118,4 +120,4 @@ go vet ./...
 go test ./internal/ui -run TestPreview -v   # print the dashboard at two widths
 ```
 
-Layout is a tested invariant: `TestDashboardFitsWidth` and `TestPromptViewFitsWidth` render every screen at widths from 40 to 118 columns and fail if any line exceeds the terminal, so sections shed columns instead of wrapping.
+Layout is a tested invariant: `TestDashboardFitsWidth` and `TestPromptViewFitsWidth` render every screen at widths from 40 to 118 columns and fail if any line exceeds the terminal, so sections shed columns instead of wrapping. `TestGaugeColorBands` pins the gauge thresholds and `TestPaletteProgressesGreenToRed` verifies the four gauge colours by hue angle.

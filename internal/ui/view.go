@@ -225,8 +225,10 @@ func (m Model) bindingBudgetView(inner int) string {
 	bar := style.Render(Bar(fraction, barWidth))
 
 	parts := []string{fmt.Sprintf("%s of %s", Money(spend), MoneyFixed(*limit))}
-	if inner >= 76 {
-		parts = append(parts, Money(max(0, *limit-spend))+" left")
+	if remaining := *limit - spend; remaining < 0 {
+		parts = append(parts, Money(-remaining)+" over")
+	} else if inner >= 76 {
+		parts = append(parts, Money(remaining)+" left")
 	}
 	if resets := m.info.ResetsAt(); resets != nil {
 		parts = append(parts, "resets "+In(time.Until(*resets)))
@@ -285,7 +287,9 @@ func (m Model) budgetsView(inner int) string {
 		row += "  " + style.Render(cell(PercentText(budget.SpendUSD, budget.LimitUSD), percentWidth))
 
 		parts := []string{fmt.Sprintf("%s of %s", Money(budget.SpendUSD), MoneyFixed(budget.LimitUSD))}
-		if inner >= 88 {
+		if over := budget.SpendUSD - budget.LimitUSD; over > 0 {
+			parts = append(parts, Money(over)+" over")
+		} else if inner >= 88 {
 			parts = append(parts, Money(max(0, budget.RemainingUSD))+" left")
 		}
 		if budget.ResetsAt != nil {

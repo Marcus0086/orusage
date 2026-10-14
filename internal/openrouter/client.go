@@ -23,6 +23,10 @@ const DefaultBaseURL = "https://openrouter.ai/api/v1"
 // DefaultTimeout bounds a single request.
 const DefaultTimeout = 20 * time.Second
 
+// DefaultProbeModel is the model used by the test request: a current
+// low-cost flagship, so the probe costs a fraction of a cent.
+const DefaultProbeModel = "openai/gpt-6-luna"
+
 // Client performs authenticated OpenRouter requests.
 type Client struct {
 	BaseURL string
