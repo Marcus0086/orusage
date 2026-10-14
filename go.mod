@@ -1,4 +1,4 @@
-module github.com/raghavgupta/orusage
+module github.com/Marcus0086/orusage
 
 go 1.24.2
 

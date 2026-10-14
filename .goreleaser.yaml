@@ -1,0 +1,62 @@
+version: 2
+
+project_name: orusage
+
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+  - id: orusage
+    main: .
+    binary: orusage
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - darwin
+      - linux
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w
+      - -X main.version={{ .Version }}
+      - -X main.commit={{ .Commit }}
+
+archives:
+  - id: orusage
+    formats:
+      - tar.gz
+    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+
+checksum:
+  name_template: checksums.txt
+
+snapshot:
+  version_template: "{{ incpatch .Version }}-next"
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+      - "^chore:"
+
+# Publishing a formula on each release makes `brew install Marcus0086/tap/orusage`
+# work. Create a repository named homebrew-tap under the same account, then
+# uncomment this block.
+#
+# brews:
+#   - repository:
+#       owner: Marcus0086
+#       name: homebrew-tap
+#       token: "{{ .Env.GITHUB_TOKEN }}"
+#     directory: Formula
+#     homepage: "https://github.com/Marcus0086/orusage"
+#     description: "Real-time OpenRouter usage dashboard for the terminal"
+#     license: "MIT"
+#     install: |
+#       bin.install "orusage"
+#     test: |
+#       system "#{bin}/orusage", "--version"

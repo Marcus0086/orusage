@@ -37,12 +37,29 @@ It polls `GET /api/v1/key` on a short interval and shows what you have spent aga
 
 Gauges run green below 50% of a budget, yellow from 50%, orange from 80%, and red from 95% — staying red once the limit is reached, where the amounts read `$X.00 over` instead of a remaining balance. The thresholds live in `BandYellowFrom`, `BandOrangeFrom`, and `BandRedFrom`, and `TestPaletteProgressesGreenToRed` checks that the four colours really do step through green → yellow → orange → red by hue in both light and dark terminals.
 
-## Quick start
+## Install
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/Marcus0086/orusage/main/install.sh | sh
+```
+
+That detects your platform, verifies the download against `checksums.txt`, and drops the binary in `~/.local/bin`. Other routes:
+
+```sh
+go install github.com/Marcus0086/orusage@latest   # Go 1.24+
+nix run github:Marcus0086/orusage                 # Nix, no install
+git clone https://github.com/Marcus0086/orusage && cd orusage && make install
+```
+
+Then `orusage` — it finds your key on its own, or opens a prompt if there is none. Verify with `orusage --version` and `orusage --once`.
+
+**Handing this to someone else:** [INSTALL.md](INSTALL.md#give-the-agent-this-prompt) has a single prompt to paste into Claude, Codex, or Cursor that installs, verifies, and resolves the API key without the person touching a terminal. [INSTALL.md](INSTALL.md) also covers credential locations, per-platform notes, and the release process.
+
+## Quick start from a checkout
 
 With Nix, everything Go-related comes from a dev shell — Go is never installed globally:
 
 ```sh
-cd ~/Documents/raghav_stuff/orusage
 nix develop          # or: nix shell nixpkgs#go
 go run .
 ```
@@ -52,7 +69,7 @@ Or build a binary:
 ```sh
 nix build .#default && ./result/bin/orusage
 # or, inside the shell
-go build -o orusage . && ./orusage
+make build && ./orusage
 ```
 
 Without Nix, any Go 1.24+ toolchain works: `go run .`.
@@ -115,8 +132,8 @@ OpenRouter returns **no** `x-ratelimit-*` or `Retry-After` headers on either `/k
 
 ```sh
 nix develop
+make check             # gofmt, go vet, go test -race
 go test ./...          # unit tests for key resolution, the API client, pacing, and layout
-go vet ./...
 go test ./internal/ui -run TestPreview -v   # print the dashboard at two widths
 ```
 

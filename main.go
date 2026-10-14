@@ -16,12 +16,18 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 
-	"github.com/raghavgupta/orusage/internal/auth"
-	"github.com/raghavgupta/orusage/internal/openrouter"
-	"github.com/raghavgupta/orusage/internal/ui"
+	"github.com/Marcus0086/orusage/internal/auth"
+	"github.com/Marcus0086/orusage/internal/openrouter"
+	"github.com/Marcus0086/orusage/internal/ui"
 )
 
-const version = "0.1.0"
+// version and commit are replaced at build time by goreleaser, by
+// `go build -ldflags`, or by the Nix build; the defaults describe a
+// development build.
+var (
+	version = "0.1.0"
+	commit  = "none"
+)
 
 func main() { os.Exit(run(os.Args[1:])) }
 
@@ -50,7 +56,7 @@ func run(args []string) int {
 		return 2
 	}
 	if *showVersion {
-		fmt.Printf("orusage %s\n", version)
+		fmt.Printf("orusage %s (%s)\n", version, commit)
 		return 0
 	}
 

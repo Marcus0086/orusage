@@ -21,7 +21,12 @@
           version = "0.1.0";
           src = self;
           vendorHash = "sha256-TUbaUoqDZoQTkcOMtoE/FlAiqkWN+x49JeGkDguh2UU=";
-          ldflags = [ "-s" "-w" ];
+          ldflags = [
+            "-s"
+            "-w"
+            "-X main.version=0.1.0"
+            "-X main.commit=${self.shortRev or "dev"}"
+          ];
           meta = {
             description = "Real-time OpenRouter usage dashboard for the terminal";
             mainProgram = "orusage";
